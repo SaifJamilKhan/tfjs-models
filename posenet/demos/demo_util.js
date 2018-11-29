@@ -21,6 +21,8 @@ const color = 'aqua';
 const boundingBoxColor = 'red';
 const lineWidth = 2;
 
+const math = require('mathjs')
+
 function toTuple({y, x}) {
   return [y, x];
 }
@@ -50,12 +52,53 @@ export function drawSegment([ay, ax], [by, bx], color, scale, ctx) {
 export function drawSkeleton(keypoints, minConfidence, ctx, scale = 1) {
   const adjacentKeyPoints =
       posenet.getAdjacentKeyPoints(keypoints, minConfidence);
+    var leftElbow = null;
+    var rightShoulder = null;
+    var leftShoulder = null;
+
+    adjacentKeyPoints.forEach((keypoints) => {
+        keypoints.forEach((point) => {
+            if (point.part.localeCompare('leftElbow') === 0) {
+                leftElbow = point.position;
+            }
+            if (point.part.localeCompare('rightShoulder') === 0) {
+                rightShoulder = point.position;
+            }
+            if (point.part.localeCompare('leftShoulder') === 0) {
+                leftShoulder = point.position;
+            }
+        });
+    });
+    var badForm = false;
+    if (leftElbow != null && rightShoulder != null && leftShoulder !=null) {
+        var result = find_angle(leftElbow, leftShoulder, rightShoulder);
+        if (leftElbow.y > leftShoulder.y) {
+            badForm = (result < 2.95);
+        }
+        console.log(result);
+        console.log("for points");
+        console.log(leftElbow);
+        console.log(leftShoulder);
+        console.log(rightShoulder);
+        console.log("-----------------------------");
+
+        // let angle = math.cos(math.radians(45));
+    } else {
+
+    }
 
   adjacentKeyPoints.forEach((keypoints) => {
     drawSegment(
-        toTuple(keypoints[0].position), toTuple(keypoints[1].position), color,
+        toTuple(keypoints[0].position), toTuple(keypoints[1].position), (badForm ? 'red' : color),
         scale, ctx);
   });
+}
+
+function find_angle(A,B,C) {
+    var AB = Math.sqrt(Math.pow(B.x-A.x,2)+ Math.pow(B.y-A.y,2));
+    var BC = Math.sqrt(Math.pow(B.x-C.x,2)+ Math.pow(B.y-C.y,2));
+    var AC = Math.sqrt(Math.pow(C.x-A.x,2)+ Math.pow(C.y-A.y,2));
+    return Math.acos((BC*BC+AB*AB-AC*AC)/(2*BC*AB));
 }
 
 /**
