@@ -70,10 +70,19 @@ export function drawSkeleton(keypoints, minConfidence, ctx, scale = 1) {
         });
     });
     var badForm = false;
+    var rightRegion = false;
     if (leftElbow != null && rightShoulder != null && leftShoulder !=null) {
         var result = find_angle(leftElbow, leftShoulder, rightShoulder);
         if (leftElbow.y > leftShoulder.y) {
-            badForm = (result < 2.95);
+            if (result < 2.95) {
+                badForm = true;
+            } else {
+                rightRegion = true;
+            }
+        } else {
+            if (result > 2.95) {
+                rightRegion = true;
+            }
         }
         console.log(result);
         console.log("for points");
@@ -88,12 +97,30 @@ export function drawSkeleton(keypoints, minConfidence, ctx, scale = 1) {
     }
 
   adjacentKeyPoints.forEach((keypoints) => {
+      var rightLigament = false;
+
+      if (keypoints.length >= 2) {
+          rightLigament = isLigament(keypoints[0]) && isLigament(keypoints[1]);
+      }
+      let segColor = ((badForm && rightLigament) ? 'red' : color);
+      if (rightRegion) {
+          segColor = 'green';
+      }
     drawSegment(
-        toTuple(keypoints[0].position), toTuple(keypoints[1].position), (badForm ? 'red' : color),
+        toTuple(keypoints[0].position), toTuple(keypoints[1].position), segColor,
         scale, ctx);
   });
 }
 
+function isLigament(input) {
+    if (input.part.localeCompare('leftShoulder') === 0) {
+        return true;
+    }
+    if (input.part.localeCompare('leftElbow') === 0) {
+        return true;
+    }
+    return false;
+}
 function find_angle(A,B,C) {
     var AB = Math.sqrt(Math.pow(B.x-A.x,2)+ Math.pow(B.y-A.y,2));
     var BC = Math.sqrt(Math.pow(B.x-C.x,2)+ Math.pow(B.y-C.y,2));
